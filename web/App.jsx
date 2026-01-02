@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 // REMOVED: import { AppProvider } from "@shopify/shopify-app-react";
 import { Page, Layout, Card, TextField, Button, Banner, BlockStack, Text, DataTable, Badge, ProgressBar } from "@shopify/polaris";
-import { Provider as AppBridgeProvider } from "@shopify/app-bridge-react";
+import { AppBridgeProvider } from "@shopify/app-bridge-react";
 import "@shopify/polaris/build/esm/styles.css";
 
 // App Bridge config
