@@ -1,21 +1,23 @@
 {
-  "name": "shopify-base-app-server",
+  "name": "server",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "npm run start",
+    "build": "echo 'No server build needed for pure JS setup'",
     "start": "node index.js",
-    "build": "cd ../ui && npm install && npm run build"
+    "dev": "nodemon index.js"
   },
-  "type": "module",
   "dependencies": {
-    "@shopify/shopify-api": "^12.2.0",
-    "@shopify/shopify-app-express": "^6.0.4",
-    "@shopify/shopify-app-session-storage-memory": "^5.0.4",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2",
-    "jsonwebtoken": "^9.0.2",
-    "pg": "^8.11.3",
-    "uuid": "^9.0.1"
+    "@prisma/client": "^5.0.0",
+    "@shopify/shopify-api": "^9.0.0",
+    "@shopify/shopify-app-express": "^4.0.0",
+    "express": "^4.18.2",
+    "serve-static": "^1.15.0",
+    "compression": "^1.7.4",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0",
+    "prisma": "^5.0.0"
   }
 }
