@@ -1,11 +1,19 @@
 import { useState, useCallback } from "react";
-import { AppProvider } from "@shopify/shopify-app-react";
+// REMOVED: import { AppProvider } from "@shopify/shopify-app-react";
 import { Page, Layout, Card, TextField, Button, Banner, BlockStack, Text, DataTable, Badge, ProgressBar } from "@shopify/polaris";
 import { Provider as AppBridgeProvider } from "@shopify/app-bridge-react";
+import "@shopify/polaris/build/esm/styles.css";
+
+// App Bridge config
+const appBridgeConfig = {
+    apiKey: import.meta.env.VITE_SHOPIFY_API_KEY,
+    host: new URLSearchParams(window.location.search).get("host"),
+    forceRedirect: true,
+};
 
 export function App() {
     return (
-        <AppBridgeProvider>
+        <AppBridgeProvider config={appBridgeConfig}>
             <MainContent />
         </AppBridgeProvider>
     );
@@ -29,11 +37,7 @@ function MainContent() {
 
     // Helpers
     const authenticatedFetch = async (url, options = {}) => {
-        // In strict embedded mode with AppBridge, standard fetch is often intercepted or we use app bridge utils.
-        // For simplicity with standard Vite setup, we assume the proxy handles the auth headers or cookie session is valid.
-        // If using Session Tokens, we'd need useAppBridge validation.
-        // Assuming cookie-based session for this classic Setup or header injection via interceptor.
-        // We'll use standard fetch assuming the /api is proxied and we have session.
+        // Standard fetch for now
         return fetch(url, options);
     };
 
