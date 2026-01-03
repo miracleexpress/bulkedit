@@ -4,7 +4,7 @@ import { dirname, join } from "path";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import serveStatic from "serve-static";
-import shopify from "./shopify.js";
+import shopify, { prisma } from "./shopify.js";
 import { GraphqlClient } from '@shopify/shopify-api';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -558,6 +558,66 @@ app.post("/api/dry-run", async (req, res) => {
 
 app.post("/api/execute", async (req, res) => {
   return handleProcess(req, res, false);
+});
+
+// Internal Endpoint for Token Export
+app.get("/api/internal/offline-token", async (req, res) => {
+  const secretEnv = process.env.INTERNAL_TOKEN_EXPORT_SECRET;
+
+  // 1. Critical Security Check
+  if (!secretEnv) {
+    console.error("❌ CRTICAL: INTERNAL_TOKEN_EXPORT_SECRET is not set in environment.");
+    return res.status(500).json({ error: "Server misconfiguration" });
+  }
+
+  const headerSecret = req.headers['x-secret'];
+  if (headerSecret !== secretEnv) {
+    console.warn("⚠️ Unauthorized access attempt to internal token endpoint.");
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  // 2. Logic to fetch offline token
+  try {
+    const { shop } = req.query;
+
+    // Prevent caching of sensitive data
+    res.setHeader('Cache-Control', 'no-store');
+
+    let session;
+    if (shop) {
+      // If shop is provided, try to find specific offline session
+      // Constructing ID like "offline_shopname" is standard but let's query safer
+      // Session ID format for offline: "offline_" + shop
+      const offlineId = `offline_${shop}`;
+      session = await prisma.session.findUnique({
+        where: { id: offlineId }
+      });
+    } else {
+      // Find ANY offline session if no shop specified (internal tool usage)
+      session = await prisma.session.findFirst({
+        where: {
+          id: {
+            startsWith: 'offline_'
+          }
+        }
+      });
+    }
+
+    if (!session) {
+      return res.status(404).json({ error: "No offline session found" });
+    }
+
+    // 3. Return secure JSON
+    console.log(`✅ Token exported for shop: ${session.shop}`);
+    return res.json({
+      shop: session.shop,
+      accessToken: session.accessToken
+    });
+
+  } catch (error) {
+    console.error("❌ Internal token export error:", error);
+    return res.status(500).json({ error: "Internal Error" });
+  }
 });
 
 // Serve frontend assets
