@@ -40,17 +40,28 @@ function App() {
     const authFetch = async (url, body) => {
         try {
             // App Bridge v4 global shopify object
-            const token = await window.shopify.idToken();
+            let token = '';
+            try {
+                // Only try to get token if we are likely in an embedded context or if window.shopify is available
+                if (window.shopify && window.shopify.idToken) {
+                    token = await window.shopify.idToken();
+                }
+            } catch (e) {
+                console.warn("Could not retrieve Shopify ID Token. Proceeding with 'shop' param only.", e);
+            }
+
             const params = new URLSearchParams(window.location.search);
             const shop = params.get("shop");
             const urlWithShop = shop ? `${url}${url.includes('?') ? '&' : '?'}shop=${encodeURIComponent(shop)}` : url;
 
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
             const response = await fetch(urlWithShop, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
+                headers,
                 body: JSON.stringify(body)
             });
 

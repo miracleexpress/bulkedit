@@ -309,7 +309,12 @@ export function BulkUpload({ authFetch }) {
                                 You must open this app in a new tab to select folders.
                             </p>
                             <Box paddingBlockStart="200">
-                                <Button onClick={() => window.open(window.location.href, '_blank')}>
+                                <Button onClick={() => {
+                                    const currentUrl = new URL(window.location.href);
+                                    currentUrl.searchParams.delete("embedded");
+                                    currentUrl.searchParams.delete("host"); // App Bridge might auto-redirect if host is present
+                                    window.open(currentUrl.toString(), '_blank');
+                                }}>
                                     Open App in New Tab
                                 </Button>
                             </Box>
