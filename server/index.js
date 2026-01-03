@@ -173,6 +173,226 @@ async function getAllMediaForProduct(client, product) {
   return allMedia;
 }
 
+// --- BULK UPLOAD HELPERS ---
+
+const QUERY_PRODUCTS_BY_TAG = `
+  query getProductsByTag($query: String!, $cursor: String) {
+    products(first: 50, after: $cursor, query: $query) {
+      edges {
+        node {
+          id
+          title
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+`;
+
+const MUTATION_STAGED_UPLOADS_CREATE = `
+  mutation stagedUploadsCreate($input: [StagedUploadInput!]!) {
+    stagedUploadsCreate(input: $input) {
+      stagedTargets {
+        url
+        resourceUrl
+        parameters {
+          name
+          value
+        }
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+const MUTATION_FILE_CREATE = `
+  mutation fileCreate($files: [FileCreateInput!]!) {
+    fileCreate(files: $files) {
+      files {
+        id
+        fileStatus
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+const MUTATION_PRODUCT_CREATE_MEDIA = `
+  mutation productCreateMedia($productId: ID!, $media: [CreateMediaInput!]!) {
+    productCreateMedia(productId: $productId, media: $media) {
+      media {
+        id
+        status
+        mediaErrors {
+          code
+          details
+        }
+      }
+      mediaUserErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+// 1. Fetch ALL products by tag
+app.post("/api/fetch-products", async (req, res) => {
+  const { tag } = req.body;
+  if (!tag) return res.status(400).json({ error: "Tag is required" });
+
+  const session = res.locals.shopify.session;
+  const client = new shopify.api.clients.Graphql({ session });
+
+  try {
+    let allProducts = [];
+    let hasNextPage = true;
+    let cursor = null;
+
+    while (hasNextPage) {
+      const response = await client.query({
+        data: {
+          query: QUERY_PRODUCTS_BY_TAG,
+          variables: { query: `tag:${tag}`, cursor },
+        },
+      });
+
+      const data = response.body.data.products;
+      allProducts = allProducts.concat(data.edges.map(e => e.node));
+
+      hasNextPage = data.pageInfo.hasNextPage;
+      cursor = data.pageInfo.endCursor;
+
+      // Safety limits
+      if (allProducts.length > 2000) break; // Hard limit prevention
+      await sleep(100);
+    }
+
+    res.json({ products: allProducts });
+  } catch (e) {
+    console.error("Fetch products error:", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 2. Sign Upload (Staged Uploads Create)
+app.post("/api/upload/sign", async (req, res) => {
+  const { filename, mimeType, resource } = req.body;
+  const session = res.locals.shopify.session;
+  const client = new shopify.api.clients.Graphql({ session });
+
+  try {
+    const response = await client.query({
+      data: {
+        query: MUTATION_STAGED_UPLOADS_CREATE,
+        variables: {
+          input: [{
+            filename,
+            mimeType,
+            resource: resource || "IMAGE",
+            httpMethod: "PUT"
+          }]
+        }
+      }
+    });
+
+    if (response.body.errors) {
+      throw new Error(JSON.stringify(response.body.errors));
+    }
+
+    const result = response.body.data.stagedUploadsCreate;
+    if (result.userErrors && result.userErrors.length > 0) {
+      return res.status(400).json({ error: result.userErrors[0].message });
+    }
+
+    res.json(result.stagedTargets[0]);
+  } catch (e) {
+    console.error("Sign upload error:", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 3. File Create (Register in Shopify Files)
+app.post("/api/upload/file-create", async (req, res) => {
+  const { originalSource, filename, contentType } = req.body;
+  const session = res.locals.shopify.session;
+  const client = new shopify.api.clients.Graphql({ session });
+
+  try {
+    const response = await client.query({
+      data: {
+        query: MUTATION_FILE_CREATE,
+        variables: {
+          files: [{
+            originalSource,
+            filename,
+            contentType
+          }]
+        }
+      }
+    });
+
+    if (response.body.errors) {
+      throw new Error(JSON.stringify(response.body.errors));
+    }
+
+    const result = response.body.data.fileCreate;
+    if (result.userErrors && result.userErrors.length > 0) {
+      return res.status(400).json({ error: result.userErrors[0].message });
+    }
+
+    res.json(result.files[0]);
+  } catch (e) {
+    console.error("File create error:", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 4. Product Create Media
+app.post("/api/upload/media-create", async (req, res) => {
+  const { productId, originalSource, mediaContentType } = req.body;
+  const session = res.locals.shopify.session;
+  const client = new shopify.api.clients.Graphql({ session });
+
+  try {
+    const response = await client.query({
+      data: {
+        query: MUTATION_PRODUCT_CREATE_MEDIA,
+        variables: {
+          productId,
+          media: [{
+            originalSource,
+            mediaContentType: mediaContentType || "IMAGE"
+          }]
+        }
+      }
+    });
+
+    if (response.body.errors) {
+      throw new Error(JSON.stringify(response.body.errors));
+    }
+
+    const result = response.body.data.productCreateMedia;
+    if (result.mediaUserErrors && result.mediaUserErrors.length > 0) {
+      return res.status(400).json({ error: result.mediaUserErrors[0].message });
+    }
+
+    res.json(result.media[0]);
+  } catch (e) {
+    console.error("Media create error:", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Core Logic Handler
 async function handleProcess(req, res, dryRun) {
   const { tag, confirmText, confirmTag } = req.body;

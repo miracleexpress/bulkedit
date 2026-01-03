@@ -17,11 +17,19 @@ import {
     ProgressBar
 } from '@shopify/polaris';
 import enTranslations from '@shopify/polaris/locales/en.json';
+import { BulkUpload } from './BulkUpload';
 
 function App() {
     const [tag, setTag] = useState('');
     const [confirmText, setConfirmText] = useState('');
     const [confirmTag, setConfirmTag] = useState('');
+
+    // Tabs state
+    const [selectedTab, setSelectedTab] = useState(0);
+    const tabs = [
+        { id: 'cleaner', content: 'Cleaner (Delete)' },
+        { id: 'uploader', content: 'Uploader (Add)' }
+    ];
 
     const [loading, setLoading] = useState(false);
     const [progressText, setProgressText] = useState('');
@@ -101,94 +109,129 @@ function App() {
 
     return (
         <AppProvider i18n={enTranslations}>
-            <Page title="Tagged Product Media Cleaner">
+            <Page title="Products Image Tools">
                 <Layout>
-
-                    {globalError && (
-                        <Layout.Section>
-                            <Banner tone="critical" title="Error">
-                                <p>{globalError}</p>
-                            </Banner>
-                        </Layout.Section>
-                    )}
-
                     <Layout.Section>
-                        <Card>
-                            <BlockStack gap="400">
-                                <Text as="h2" variant="headingMd">Configuration</Text>
-                                <TextField
-                                    label="Product Tag"
-                                    value={tag}
-                                    onChange={setTag}
-                                    autoComplete="off"
-                                    helpText="Enter the exact tag to search for."
-                                    disabled={loading}
-                                />
-
-                                <InlineGrid columns={2} gap="400">
-                                    <Button
-                                        variant="primary"
-                                        onClick={handleDryRun}
-                                        loading={loading && !confirmText} // Only show spinner if not executing
-                                        disabled={!tag || loading}
-                                    >
-                                        Dry Run
-                                    </Button>
-                                </InlineGrid>
-
-                                {results && (
-                                    <>
-                                        <Divider />
-                                        <Text as="h2" variant="headingMd" tone="critical">Danger Zone: Execution</Text>
-                                        <Banner tone="warning" title="Warning: Irreversible Action">
-                                            <p>Entering 'CONFIRM' and the tag will permanently delete media images for ALL products found with this tag.</p>
-                                            <p>Dry Run found <strong>{results.summary.productsFound}</strong> products and <strong>{results.summary.mediaFound}</strong> media items.</p>
-                                        </Banner>
-
-                                        <TextField
-                                            label="Confirm Tag"
-                                            value={confirmTag}
-                                            onChange={setConfirmTag}
-                                            autoComplete="off"
-                                            placeholder={tag}
-                                            helpText="Retype the tag used above."
-                                            disabled={loading}
-                                        />
-
-                                        <TextField
-                                            label="Confirmation Code"
-                                            value={confirmText}
-                                            onChange={setConfirmText}
-                                            autoComplete="off"
-                                            placeholder="CONFIRM"
-                                            helpText="Type 'CONFIRM' to enable the button."
-                                            disabled={loading}
-                                        />
-
-                                        <Button
-                                            variant="primary"
-                                            tone="critical"
-                                            onClick={handleExecute}
-                                            loading={loading}
-                                            disabled={!canExecute}
+                        <Card padding="0">
+                            <div style={{ borderBottom: '1px solid #dfe3e8' }}>
+                                <InlineGrid columns={2}>
+                                    {tabs.map((t, i) => (
+                                        <div
+                                            key={t.id}
+                                            onClick={() => setSelectedTab(i)}
+                                            style={{
+                                                padding: '12px 16px',
+                                                cursor: 'pointer',
+                                                textAlign: 'center',
+                                                backgroundColor: selectedTab === i ? '#f4f6f8' : 'white',
+                                                fontWeight: selectedTab === i ? 'bold' : 'normal',
+                                                borderBottom: selectedTab === i ? '2px solid #000' : 'none',
+                                                color: selectedTab === i ? '#000' : '#637381'
+                                            }}
                                         >
-                                            EXECUTE DELETE
-                                        </Button>
-                                    </>
-                                )}
-
-                                {loading && <ProgressBar progress={80} tone="highlight" />}
-                                {progressText && <Text tone="subdued">{progressText}</Text>}
-                            </BlockStack>
+                                            {t.content}
+                                        </div>
+                                    ))}
+                                </InlineGrid>
+                            </div>
                         </Card>
                     </Layout.Section>
 
-                    {results && (
+                    {selectedTab === 0 && (
+                        <>
+                            {globalError && (
+                                <Layout.Section>
+                                    <Banner tone="critical" title="Error">
+                                        <p>{globalError}</p>
+                                    </Banner>
+                                </Layout.Section>
+                            )}
+
+                            <Layout.Section>
+                                <Card>
+                                    <BlockStack gap="400">
+                                        <Text as="h2" variant="headingMd">Delete Product Media by Tag</Text>
+                                        <TextField
+                                            label="Product Tag"
+                                            value={tag}
+                                            onChange={setTag}
+                                            autoComplete="off"
+                                            helpText="Enter the exact tag to search for."
+                                            disabled={loading}
+                                        />
+
+                                        <InlineGrid columns={2} gap="400">
+                                            <Button
+                                                variant="primary"
+                                                onClick={handleDryRun}
+                                                loading={loading && !confirmText}
+                                                disabled={!tag || loading}
+                                            >
+                                                Dry Run
+                                            </Button>
+                                        </InlineGrid>
+
+                                        {results && (
+                                            <>
+                                                <Divider />
+                                                <Text as="h2" variant="headingMd" tone="critical">Danger Zone: Execution</Text>
+                                                <Banner tone="warning" title="Warning: Irreversible Action">
+                                                    <p>Entering 'CONFIRM' and the tag will permanently delete media images for ALL products found with this tag.</p>
+                                                    <p>Dry Run found <strong>{results.summary.productsFound}</strong> products and <strong>{results.summary.mediaFound}</strong> media items.</p>
+                                                </Banner>
+
+                                                <TextField
+                                                    label="Confirm Tag"
+                                                    value={confirmTag}
+                                                    onChange={setConfirmTag}
+                                                    autoComplete="off"
+                                                    placeholder={tag}
+                                                    helpText="Retype the tag used above."
+                                                    disabled={loading}
+                                                />
+
+                                                <TextField
+                                                    label="Confirmation Code"
+                                                    value={confirmText}
+                                                    onChange={setConfirmText}
+                                                    autoComplete="off"
+                                                    placeholder="CONFIRM"
+                                                    helpText="Type 'CONFIRM' to enable the button."
+                                                    disabled={loading}
+                                                />
+
+                                                <Button
+                                                    variant="primary"
+                                                    tone="critical"
+                                                    onClick={handleExecute}
+                                                    loading={loading}
+                                                    disabled={!canExecute}
+                                                >
+                                                    EXECUTE DELETE
+                                                </Button>
+                                            </>
+                                        )}
+
+                                        {loading && <ProgressBar progress={80} tone="highlight" />}
+                                        {progressText && <Text tone="subdued">{progressText}</Text>}
+                                    </BlockStack>
+                                </Card>
+                            </Layout.Section>
+
+                            {results && (
+                                <Layout.Section>
+                                    <SummaryCards summary={results.summary} />
+                                    <Box paddingBlockStart="400">
+                                        <ResultsTable items={results.items} />
+                                    </Box>
+                                </Layout.Section>
+                            )}
+                        </>
+                    )}
+
+                    {selectedTab === 1 && (
                         <Layout.Section>
-                            <SummaryCards summary={results.summary} />
-                            <Box paddingBlockStart="400">
-                                <ResultsTable items={results.items} />
-                            </Box>
+                            <BulkUpload authFetch={authFetch} />
                         </Layout.Section>
                     )}
 
