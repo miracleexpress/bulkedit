@@ -21,13 +21,27 @@ app.get(shopify.config.auth.path, shopify.auth.begin());
 app.get(
   shopify.config.auth.callbackPath,
   shopify.auth.callback(),
-  (req, res, next) => {
+  async (req, res, next) => {
     const session = res.locals.shopify?.session;
     console.log("✅ Auth callback OK", {
       shop: session?.shop,
       isOnline: session?.isOnline,
       id: session?.id,
     });
+
+    // Verify persistence immediately
+    try {
+      if (session) {
+        const loadedById = await shopify.config.sessionStorage.loadSession(session.id);
+        console.log("🔎 loadSession(by id) =>", loadedById ? "FOUND" : "NULL");
+
+        const offlineId = shopify.api.session.getOfflineId(session.shop);
+        const loadedOffline = await shopify.config.sessionStorage.loadSession(offlineId);
+        console.log(`🔎 loadSession(${offlineId}) =>`, loadedOffline ? "FOUND" : "NULL");
+      }
+    } catch (e) {
+      console.error("❌ loadSession check failed:", e);
+    }
     next();
   },
   shopify.redirectToShopifyOrAppRoot()
@@ -313,4 +327,5 @@ app.get("*", (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log("DB host:", (process.env.DATABASE_URL || "").split("@")[1]?.split("/")[0]);
 });
