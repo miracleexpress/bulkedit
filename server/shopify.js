@@ -10,7 +10,7 @@ const shopify = shopifyApp({
     api: {
         apiVersion: LATEST_API_VERSION,
         billing: undefined,
-        scopes: process.env.SCOPES ? process.env.SCOPES.split(',') : [],
+        scopes: process.env.SCOPES ? process.env.SCOPES.split(',').map(s => s.trim()) : [],
     },
     auth: {
         path: "/api/auth",

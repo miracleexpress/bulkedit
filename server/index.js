@@ -29,8 +29,8 @@ app.post(
 );
 
 // All API routes must be authenticated
-app.use("/api/*", shopify.validateAuthenticatedSession());
 app.use(express.json());
+app.use("/api/*", shopify.validateAuthenticatedSession());
 
 // Helper for sleeping
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

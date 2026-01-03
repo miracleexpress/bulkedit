@@ -33,7 +33,11 @@ function App() {
         try {
             // App Bridge v4 global shopify object
             const token = await window.shopify.idToken();
-            const response = await fetch(url, {
+            const params = new URLSearchParams(window.location.search);
+            const shop = params.get("shop");
+            const urlWithShop = shop ? `${url}${url.includes('?') ? '&' : '?'}shop=${encodeURIComponent(shop)}` : url;
+
+            const response = await fetch(urlWithShop, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
