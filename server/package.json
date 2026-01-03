@@ -1,23 +1,23 @@
 {
-  "name": "server",
-  "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "build": "echo 'No server build needed for pure JS setup'",
-    "start": "node index.js",
-    "dev": "nodemon index.js"
-  },
-  "dependencies": {
-    "@prisma/client": "^5.0.0",
-    "@shopify/shopify-api": "^9.0.0",
-    "@shopify/shopify-app-express": "^4.0.0",
-    "express": "^4.18.2",
-    "serve-static": "^1.15.0",
-    "compression": "^1.7.4",
-    "morgan": "^1.10.0"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.0",
-    "prisma": "^5.0.0"
-  }
+    "name": "server",
+    "version": "1.0.0",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "dev": "nodemon index.js",
+        "build": "npx prisma generate",
+        "start": "node index.js"
+    },
+    "dependencies": {
+        "@prisma/client": "^5.0.0",
+        "@shopify/shopify-api": "^9.0.0",
+        "@shopify/shopify-app-express": "^4.0.0",
+        "@shopify/shopify-app-session-storage-prisma": "^4.0.0",
+        "express": "^4.18.2",
+        "prisma": "^5.0.0",
+        "serve-static": "^1.15.0"
+    },
+    "devDependencies": {
+        "nodemon": "^3.0.0"
+    }
 }

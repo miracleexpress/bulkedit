@@ -1,9 +1,9 @@
 services:
   - type: web
-    name: bulk-image-cleaner
+    name: bulkedit
     runtime: node
     buildCommand: npm install && npm run build
-    startCommand: npm start
+    startCommand: cd server && npx prisma migrate deploy && npm start
     envVars:
       - key: SHOPIFY_API_KEY
         sync: false
@@ -12,21 +12,14 @@ services:
       - key: SCOPES
         value: read_products,write_products
       - key: SHOPIFY_APP_URL
-        sync: false
+        value: https://bulkedit-n5ls.onrender.com
       - key: HOST
-        sync: false
+        value: https://bulkedit-n5ls.onrender.com
       - key: DATABASE_URL
-        fromDatabase:
-          name: bulk-cleaner-db
-          property: connectionString
+        sync: false
       - key: NODE_ENV
         value: production
       - key: MAX_PRODUCTS_PER_RUN
         value: 500
       - key: MAX_MEDIA_DELETES_PER_RUN
         value: 5000
-
-databases:
-  - name: bulk-cleaner-db
-    databaseName: bulk_cleaner
-    user: bulk_cleaner_user
