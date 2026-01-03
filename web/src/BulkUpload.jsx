@@ -56,12 +56,24 @@ export function BulkUpload({ authFetch }) {
 
         try {
             // A. Pick Directory
+            if (!window.showDirectoryPicker) {
+                throw new Error("Your browser does not support the File System Access API (window.showDirectoryPicker). Please use Chrome, Edge, or Opera on Desktop.");
+            }
+
             let dirHandle;
             try {
                 dirHandle = await window.showDirectoryPicker();
             } catch (e) {
-                setLoading(false);
-                return; // User cancelled
+                if (e.name === 'AbortError') {
+                    setLoading(false);
+                    return; // User cancelled
+                }
+                console.error("Directory Picker failed:", e);
+                // Specialized error message for iframe restriction
+                if (e.name === 'SecurityError' || e.message.includes('SecurityError')) {
+                    throw new Error("Shopify Security Restriction: Cannot access file system from within the embedded admin iframe. Please try opening this app in a new tab/window.");
+                }
+                throw e;
             }
 
             // B. Fetch Products
