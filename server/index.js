@@ -281,7 +281,7 @@ app.post("/api/execute", async (req, res) => {
 // Serve frontend assets
 app.use(serveStatic(join(__dirname, "../web/dist"), { index: false }));
 
-import { readFileSync } from "fs";
+
 
 app.use("/*", shopify.ensureInstalledOnShop(), async (_req, res, _next) => {
   try {
