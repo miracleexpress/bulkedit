@@ -16,4 +16,6 @@ model Session {
   expires     DateTime?
   accessToken String
   userId      BigInt?
+
+  @@index([shop])
 }
