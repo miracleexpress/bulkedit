@@ -9,7 +9,6 @@ const storage = new PrismaSessionStorage(prisma);
 const shopify = shopifyApp({
     api: {
         apiVersion: LATEST_API_VERSION,
-        restResources: {},
         billing: undefined,
         scopes: process.env.SCOPES ? process.env.SCOPES.split(',') : [],
     },
