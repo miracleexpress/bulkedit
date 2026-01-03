@@ -20,7 +20,6 @@ const shopify = shopifyApp({
         path: "/api/webhooks",
     },
     sessionStorage: storage,
-    useOnlineTokens: true,
 });
 
 export default shopify;
