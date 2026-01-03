@@ -21,6 +21,15 @@ app.get(shopify.config.auth.path, shopify.auth.begin());
 app.get(
   shopify.config.auth.callbackPath,
   shopify.auth.callback(),
+  (req, res, next) => {
+    const session = res.locals.shopify?.session;
+    console.log("✅ Auth callback OK", {
+      shop: session?.shop,
+      isOnline: session?.isOnline,
+      id: session?.id,
+    });
+    next();
+  },
   shopify.redirectToShopifyOrAppRoot()
 );
 app.post(
@@ -28,9 +37,10 @@ app.post(
   shopify.processWebhooks({ webhookHandlers: {} })
 );
 
-// All API routes must be authenticated
 app.use(express.json());
-app.use("/api/*", shopify.validateAuthenticatedSession());
+
+// All API routes must be authenticated
+app.use("/api", shopify.validateAuthenticatedSession());
 
 // Helper for sleeping
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
