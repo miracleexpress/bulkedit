@@ -45,8 +45,8 @@ function App() {
             if (response.headers.get("X-Shopify-Api-Request-Failure-Reauthorize") === "1") {
                 const authUrl = response.headers.get("X-Shopify-Api-Request-Failure-Reauthorize-Url");
                 if (authUrl) {
-                    // Redirect to the re-authorization URL
-                    window.location.href = authUrl;
+                    // Redirect to the re-authorization URL using _top to break out of iframe
+                    window.open(authUrl, '_top');
                     return;
                 }
             }
