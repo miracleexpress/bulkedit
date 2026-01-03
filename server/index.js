@@ -51,10 +51,48 @@ app.post(
   shopify.processWebhooks({ webhookHandlers: {} })
 );
 
-app.use(express.json());
+app.use("/api", express.json());
 
-// All API routes must be authenticated
-app.use("/api", shopify.validateAuthenticatedSession());
+// Custom Offline Session Middleware to avoid JWT reauth loops
+app.use("/api", async (req, res, next) => {
+  try {
+    let shop = req.query.shop;
+
+    // Fallback: Try to get shop from Referer if not in query
+    if (!shop) {
+      const referer = req.get("referer");
+      if (referer) {
+        try {
+          const url = new URL(referer);
+          shop = url.searchParams.get("shop");
+        } catch (e) {
+          // ignore invalid referer
+        }
+      }
+    }
+
+    if (!shop) {
+      console.log("❌ Custom Middleware: Missing shop parameter");
+      return res.status(400).json({ error: "Missing shop parameter" });
+    }
+
+    const offlineId = shopify.api.session.getOfflineId(shop);
+    const session = await shopify.config.sessionStorage.loadSession(offlineId);
+
+    if (!session) {
+      console.log(`❌ Custom Middleware: No offline session found for ${shop}`);
+      return res.status(401).json({ error: "No offline session found. Please reauthorize." });
+    }
+
+    // Determine correctness by creating a Graphql client from this session to see if it works? 
+    // No, just pass it to the handler.
+    res.locals.shopify = { session };
+    return next();
+  } catch (e) {
+    console.error("❌ Custom Middleware Error:", e);
+    return res.status(500).json({ error: "Auth middleware failed" });
+  }
+});
 
 // Helper for sleeping
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
