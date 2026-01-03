@@ -42,6 +42,15 @@ function App() {
                 body: JSON.stringify(body)
             });
 
+            if (response.headers.get("X-Shopify-Api-Request-Failure-Reauthorize") === "1") {
+                const authUrl = response.headers.get("X-Shopify-Api-Request-Failure-Reauthorize-Url");
+                if (authUrl) {
+                    // Redirect to the re-authorization URL
+                    window.location.href = authUrl;
+                    return;
+                }
+            }
+
             if (!response.ok) {
                 const err = await response.json();
                 throw new Error(err.error || 'Request failed');
