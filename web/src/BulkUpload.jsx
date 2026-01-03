@@ -293,24 +293,50 @@ export function BulkUpload({ authFetch }) {
 
     // --- RENDERERS ---
 
+    // Detect Embedded Mode
+    const isEmbedded = window.self !== window.top;
+
     if (step === 'input') {
         return (
             <Card>
                 <BlockStack gap="400">
                     <Text as="h2" variant="headingMd">Bulk Upload Configuration</Text>
+
+                    {isEmbedded && (
+                        <Banner tone="warning" title="Browser Security Restriction">
+                            <p>
+                                Filesystem access is <strong>not allowed</strong> inside the Shopify Admin iframe.
+                                You must open this app in a new tab to select folders.
+                            </p>
+                            <Box paddingBlockStart="200">
+                                <Button onClick={() => window.open(window.location.href, '_blank')}>
+                                    Open App in New Tab
+                                </Button>
+                            </Box>
+                        </Banner>
+                    )}
+
                     <TextField
                         label="Product Tag to Filter"
                         value={tag}
                         onChange={setTag}
                         autoComplete="off"
                         helpText="Products with this tag will be fetched for matching."
+                        disabled={isEmbedded}
                     />
                     <Banner tone="info">
                         <p>Select the root folder containing your product subfolders. The app will verify folders match the product titles.</p>
                     </Banner>
-                    <Button variant="primary" onClick={handleScan} loading={loading} disabled={!tag}>
+
+                    <Button
+                        variant="primary"
+                        onClick={handleScan}
+                        loading={loading}
+                        disabled={!tag || isEmbedded}
+                    >
                         Select Root Folder & Start Scan
                     </Button>
+
                     {globalError && <Banner tone="critical"><p>{globalError}</p></Banner>}
                 </BlockStack>
             </Card>
