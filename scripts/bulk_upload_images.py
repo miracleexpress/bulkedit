@@ -172,51 +172,94 @@ def scan_folders(root_folder):
 def match_products_to_folders(products, folders):
     """
     Match products to folders using Token Subset logic.
-    Product matched if: Set(Product Tokens) <= Set(Folder Tokens)
+    Resolves collisions by prioritizing unique matches iteratively.
     """
     print("🧩 Matching products to folders...")
     
-    matched = []
-    unmatched = []
-    collisions = []
+    # 1. Calculate All Candidates for every product
+    product_candidates = []
     
-    # Pre-process product tokens
-    product_map = []
-    for p in products:
+    # Pre-calculate folder tokens map for speed (already done in simple scan, ensuring logic holds)
+    
+    print("   Building candidate maps...")
+    for p in tqdm(products, desc="Analyzing Candidates"):
         p_tokens = set(normalize_token(p["title"]))
-        product_map.append({
-            "product": p,
-            "tokens": p_tokens
-        })
-        
-    for item in tqdm(product_map, desc="Matching"):
-        p = item["product"]
-        p_tokens = item["tokens"]
-        
         if not p_tokens:
-            unmatched.append({"product": p["title"], "reason": "No matched tokens"})
+            product_candidates.append({"product": p, "candidates": [], "match_type": "no_tokens"})
             continue
             
-        candidate_folders = []
+        candidates = []
         for f in folders:
-            # Check subset
             if p_tokens.issubset(f["tokens"]):
-                candidate_folders.append(f)
+                candidates.append(f)
         
-        if len(candidate_folders) == 1:
-            matched.append({
-                "product": p,
-                "folder": candidate_folders[0]
-            })
-        elif len(candidate_folders) > 1:
-            collisions.append({
-                "product": p["title"],
-                "folders": [f["name"] for f in candidate_folders]
-            })
-        else:
-            unmatched.append({"product": p["title"]})
+        product_candidates.append({"product": p, "candidates": candidates, "match_type": None})
+
+    # 2. Iterative Resolution
+    # We loop until no new unique assignments are made.
+    assigned_folders = set() # Set of folder paths (unique identifiers)
+    matched_results = []
+    
+    pass_count = 0
+    while True:
+        pass_count += 1
+        progress_made = False
+        
+        # Find products with exactly 1 available (unassigned) candidate
+        for item in product_candidates:
+            if item["match_type"]: continue # Already resolved
             
-    return matched, unmatched, collisions
+            # Filter candidates that are not yet assigned to another product
+            available = [f for f in item["candidates"] if f["path"] not in assigned_folders]
+            
+            if len(available) == 1:
+                # MATCH FOUND
+                chosen_folder = available[0]
+                item["match_type"] = "matched"
+                item["final_folder"] = chosen_folder
+                
+                assigned_folders.add(chosen_folder["path"])
+                matched_results.append({
+                    "product": item["product"],
+                    "folder": chosen_folder
+                })
+                progress_made = True
+                
+        if not progress_made:
+            break
+            
+    print(f"   Resolved matches in {pass_count} passes.")
+
+    # 3. Final Classification
+    unmatched_results = []
+    collision_results = []
+    
+    for item in product_candidates:
+        if item.get("match_type") == "matched":
+            continue
+            
+        if item.get("match_type") == "no_tokens":
+             unmatched_results.append({"product": item["product"]["title"], "reason": "No tokens"})
+             continue
+
+        # Check remaining available for reporting
+        available = [f for f in item["candidates"] if f["path"] not in assigned_folders]
+        
+        if len(available) == 0:
+            # It might be that it had candidates, but they were all taken by better matches
+            reason = "No matching folders found"
+            if len(item["candidates"]) > 0:
+                reason = "All matching folders were assigned to other products"
+            unmatched_results.append({"product": item["product"]["title"], "reason": reason})
+            
+        elif len(available) > 1:
+            # Genuine collision remaining
+            collision_results.append({
+                "product": item["product"]["title"],
+                "folders": [f["name"] for f in available]
+            })
+            
+    return matched_results, unmatched_results, collision_results
 
 def upload_image(shop, access_token, product_id, file_path):
     """
@@ -354,7 +397,7 @@ def main():
     parser = argparse.ArgumentParser(description="Bulk Upload Images to Shopify")
     parser.add_argument("--app_base_url", required=True, help="App base URL (e.g. https://yourapp.onrender.com)")
     parser.add_argument("--secret", required=True, help="Internal Secret")
-    parser.add_argument("--shop", help="Simple shop domain (optional)")
+    parser.add_argument("--shop", help="Simple shop domain (optional)", default="fuschiahome.myshopify.com")
     parser.add_argument("--tag", required=True, help="Product Tag to search")
     parser.add_argument("--root_folder", required=True, help="Local root folder path")
     parser.add_argument("--dry_run", type=str, default="false", help="true/false")

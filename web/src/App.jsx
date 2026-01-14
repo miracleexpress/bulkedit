@@ -90,6 +90,14 @@ function App() {
         setProgressText('Running Dry Run... This may take a while.');
         setResults(null);
         try {
+            // Debug Session Check
+            try {
+                const debugData = await authFetch('/api/__debug/session');
+                console.log("🐛 DEBUG SESSION:", debugData);
+            } catch (e) {
+                console.error("🐛 DEBUG SESSION ERROR:", e);
+            }
+
             const data = await authFetch('/api/dry-run', { tag });
             setResults(data);
         } catch (error) {

@@ -560,6 +560,22 @@ app.post("/api/execute", async (req, res) => {
   return handleProcess(req, res, false);
 });
 
+// Debug Session Endpoint
+app.get("/api/__debug/session", async (req, res) => {
+  const shop = req.query.shop;
+  if (!shop) return res.json({ error: "no shop" });
+
+  const offlineId = `offline_${shop}`;
+  const session = await shopify.config.sessionStorage.loadSession(offlineId);
+
+  res.json({
+    shop,
+    offlineId,
+    found: !!session,
+    session,
+  });
+});
+
 // Internal Endpoint for Token Export
 app.get("/api/internal/offline-token", async (req, res) => {
   const secretEnv = process.env.INTERNAL_TOKEN_EXPORT_SECRET;
