@@ -560,20 +560,36 @@ app.post("/api/execute", async (req, res) => {
   return handleProcess(req, res, false);
 });
 
-// Debug Session Endpoint
+// Debug Session Endpoint (Improved)
 app.get("/api/__debug/session", async (req, res) => {
   const shop = req.query.shop;
   if (!shop) return res.json({ error: "no shop" });
 
-  const offlineId = `offline_${shop}`;
-  const session = await shopify.config.sessionStorage.loadSession(offlineId);
+  try {
+    // 1. Standard Offline ID Check
+    const offlineId = shopify.api.session.getOfflineId(shop);
+    const sessionById = await prisma.session.findUnique({
+      where: { id: offlineId }
+    });
 
-  res.json({
-    shop,
-    offlineId,
-    found: !!session,
-    session,
-  });
+    // 2. Shop Field Check (To detect ID mismatch)
+    const sessionsByShop = await prisma.session.findMany({
+      where: { shop: shop },
+      select: { id: true, isOnline: true, state: true }
+    });
+
+    res.json({
+      shop,
+      calculatedOfflineId: offlineId,
+      foundById: !!sessionById,
+      foundByShopCount: sessionsByShop.length,
+      sessionsByShop, // Returns list of IDs found for this shop
+      sessionById, // detail if found
+    });
+  } catch (e) {
+    console.error("Debug session error:", e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // Internal Endpoint for Token Export
